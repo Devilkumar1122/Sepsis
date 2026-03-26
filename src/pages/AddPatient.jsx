@@ -1,78 +1,198 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Activity, Thermometer, HeartPulse, Droplets, User, Calendar, PlusCircle, AlertTriangle, CheckCircle, Info, ArrowLeft } from 'lucide-react';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  TestTube,
+  Activity,
+  Thermometer,
+  HeartPulse,
+  Droplets,
+  User,
+  Calendar,
+  PlusCircle,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  ArrowLeft,
+  Wind,
+} from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { addPatient } from "../store/doctor";
+import { updateUserProfile } from "../store/user";
+import { waitForAuth } from "../Auth/firebase";
+import { normalizeEmail } from "../store/firestoreUtils";
+
+const initialForm = {
+  name: "",
+  age: "",
+  gender: "Male",
+  email: "",
+  heartRate: "",
+  dia_bloodPressure: "",
+  temperature: "",
+  wbc: "",
+  Sys_bloodPressure: "",
+  Resp_Rate: "",
+  Oxygen: "",
+  glucose: "",
+};
+
+const buildPrediction = (formData) => {
+  const heartRate = Number(formData.heartRate) || 80;
+  const wbc = Number(formData.wbc) || 7;
+  const temperature = Number(formData.temperature) || 37;
+
+  let riskScore = 15;
+
+  if (heartRate > 100) {
+    riskScore += 25;
+  }
+
+  if (wbc > 12 || wbc < 4) {
+    riskScore += 20;
+  }
+
+  if (temperature > 38.5 || temperature < 36) {
+    riskScore += 15;
+  }
+
+  riskScore = Math.min(riskScore, 98);
+
+  let riskLevel = "Safe";
+  if (riskScore > 60) {
+    riskLevel = "High";
+  } else if (riskScore > 30) {
+    riskLevel = "Medium";
+  }
+
+  return {
+    prediction: riskScore,
+    riskLevel,
+  };
+};
+
+const buildVitals = (formData) => ({
+  heartRate: Number(formData.heartRate) || 0,
+  bloodPressure: `${formData.Sys_bloodPressure}/${formData.dia_bloodPressure}`,
+  temperature: Number(formData.temperature) || 0,
+  wbc: Number(formData.wbc) || 0,
+  oxygen: Number(formData.Oxygen) || 0,
+  glucose: Number(formData.glucose) || 0,
+  respiratoryRate: Number(formData.Resp_Rate) || 0,
+});
 
 export default function AddPatient() {
-  const [formData, setFormData] = useState({
-    name: '',
-    age: '',
-    gender: 'Male',
-    heartRate: '',
-    bloodPressure: '',
-    temperature: '',
-    wbc: '',
-    lactate: '',
-  });
-
+  const dispatch = useDispatch();
+  const authUser = useSelector((state) => state.auth.user);
+  const profileUser = useSelector((state) => state.user.profile);
+  const currentUser = profileUser || authUser;
+  const currentRole = profileUser?.role || authUser?.role;
+  const [formData, setFormData] = useState(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [predictionResult, setPredictionResult] = useState(null);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setPredictionResult(null);
 
-    // Simulate API call and risk prediction
-    setTimeout(() => {
-      const hr = parseInt(formData.heartRate) || 80;
-      const lactate = parseFloat(formData.lactate) || 1.0;
-      const wbc = parseFloat(formData.wbc) || 7.0;
-      
-      let riskScore = 15;
-      if (hr > 100) riskScore += 25;
-      if (lactate > 2.0) riskScore += 30;
-      if (wbc > 12.0 || wbc < 4.0) riskScore += 20;
+    try {
+      const firebaseUser = await waitForAuth();
 
-      riskScore = Math.min(riskScore, 98); // cap at 98%
+      if (!currentRole) {
+        throw new Error("User session is still loading. Please wait and try again.");
+      }
 
-      let status = 'safe';
-      if (riskScore > 60) status = 'high';
-      else if (riskScore > 30) status = 'medium';
+      const vitals = buildVitals(formData);
+      const predictionData = buildPrediction(formData);
+      const email =
+        currentRole === "User"
+          ? normalizeEmail(firebaseUser.email || "")
+          : normalizeEmail(formData.email);
 
-      setPredictionResult({ risk: riskScore, status });
+      if (!email) {
+        throw new Error("Patient email is required");
+      }
+
+      if (currentRole === "Doctor" && !formData.email.trim()) {
+        throw new Error("Patient email is required");
+      }
+
+      setPredictionResult({
+        risk: predictionData.prediction,
+        status: predictionData.riskLevel.toLowerCase(),
+      });
+
+      if (currentRole === "Doctor") {
+        await dispatch(
+          addPatient({
+            patientName: formData.name.trim(),
+            age: Number(formData.age) || 0,
+            gender: formData.gender,
+            email,
+            vitals,
+            prediction: predictionData.prediction,
+            riskLevel: predictionData.riskLevel,
+          })
+        ).unwrap();
+
+        alert("Patient saved successfully");
+      } else if (currentRole === "User") {
+        await dispatch(
+          updateUserProfile({
+            updatedData: {
+              name:
+                formData.name.trim() ||
+                currentUser?.name ||
+                firebaseUser.displayName ||
+                "",
+              email,
+              vitals,
+              prediction: predictionData.prediction,
+              riskLevel: predictionData.riskLevel,
+            },
+          })
+        ).unwrap();
+
+        alert("Patient saved successfully");
+      } else {
+        throw new Error("Unsupported user role");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to save patient data");
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   const getStatusConfig = (status) => {
     switch (status) {
-      case 'high':
-        return { color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', icon: AlertTriangle, label: 'High Risk' };
-      case 'medium':
-        return { color: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', icon: Info, label: 'Medium Risk' };
-      case 'safe':
-        return { color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', icon: CheckCircle, label: 'Safe' };
+      case "high":
+        return { color: "text-red-700", bg: "bg-red-50", border: "border-red-200", icon: AlertTriangle, label: "High Risk" };
+      case "medium":
+        return { color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", icon: Info, label: "Medium Risk" };
+      case "safe":
+        return { color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", icon: CheckCircle, label: "Safe" };
       default:
-        return { color: 'text-gray-700', bg: 'bg-gray-50', border: 'border-gray-200', icon: Info, label: 'Unknown' };
+        return { color: "text-gray-700", bg: "bg-gray-50", border: "border-gray-200", icon: Info, label: "Unknown" };
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-12 font-sans">
-      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden transition-all duration-500 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
-        
-        {/* Header */}
-        <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-700 p-8 text-center relative overflow-hidden">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-5 font-sans">
+      <div className="w-full max-w-3xl bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.2)] overflow-hidden transition-all duration-500 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+        <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-700 p-7 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
-          <Link to="/" className="absolute top-6 left-6 inline-flex items-center text-sm font-medium text-white/70 hover:text-white transition-colors z-20">
+          <Link to={currentUser?.role === "Doctor" ? "/" : "/userdashboard"} className="absolute top-6 left-6 inline-flex items-center text-sm font-medium text-white/70 hover:text-white transition-colors z-20">
             <ArrowLeft className="w-4 h-4 mr-2" /> Back
           </Link>
-          <h1 className="text-3xl font-bold text-white flex items-center justify-center relative z-10 pt-4">
+          <h1 className="text-3xl font-bold text-white flex items-center justify-center relative z-10 pt-0.5">
             <PlusCircle className="w-8 h-8 mr-3" />
             Add Patient
           </h1>
@@ -80,8 +200,7 @@ export default function AddPatient() {
         </div>
 
         <div className="p-8">
-          {/* Result Card (Animated Appearance) */}
-          <div className={`overflow-hidden transition-all duration-500 ease-in-out ${predictionResult ? 'max-h-64 mb-8 opacity-100 transform translate-y-0' : 'max-h-0 opacity-0 m-0 transform -translate-y-4'}`}>
+          <div className={`overflow-hidden transition-all duration-500 ease-in-out ${predictionResult ? "max-h-64 mb-8 opacity-100 transform translate-y-0" : "max-h-0 opacity-0 m-0 transform -translate-y-4"}`}>
             {predictionResult && (() => {
               const config = getStatusConfig(predictionResult.status);
               const StatusIcon = config.icon;
@@ -98,7 +217,8 @@ export default function AddPatient() {
                   </div>
                   <div className="text-center bg-white py-3 px-6 rounded-xl shadow-sm border border-black/5">
                     <div className={`text-5xl font-extrabold ${config.color}`}>
-                      {predictionResult.risk}<span className="text-2xl">%</span>
+                      {predictionResult.risk}
+                      <span className="text-2xl">%</span>
                     </div>
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1 block">Risk Score</span>
                   </div>
@@ -108,7 +228,6 @@ export default function AddPatient() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Section 1: Basic Info */}
             <h2 className="text-lg font-bold text-gray-800 border-b border-gray-100 pb-3 mb-5 flex items-center">
               <User className="w-5 h-5 mr-2 text-indigo-500" /> Personal Details
             </h2>
@@ -141,9 +260,27 @@ export default function AddPatient() {
                   </select>
                 </div>
               </div>
+              {currentUser?.role === "Doctor" ? (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-gray-600">Email</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <User className="h-4 w-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                    </div>
+                    <input
+                      required
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="pl-10 w-full rounded-xl border-gray-200 bg-gray-50/50 border p-3 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all outline-none"
+                      placeholder="abc@gmail.com"
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
 
-            {/* Section 2: Vitals */}
             <h2 className="text-lg font-bold text-gray-800 border-b border-gray-100 pb-3 mt-8 mb-5 flex items-center">
               <Activity className="w-5 h-5 mr-2 text-rose-500" /> Vitals & Lab Results
             </h2>
@@ -158,12 +295,12 @@ export default function AddPatient() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-gray-600">Blood Pressure (mmHg)</label>
+                <label className="text-sm font-semibold text-gray-600">Dia Blood Pressure (mmHg)</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Activity className="h-4 w-4 text-blue-400 group-focus-within:text-blue-500 transition-colors" />
                   </div>
-                  <input required type="text" name="bloodPressure" value={formData.bloodPressure} onChange={handleChange} className="pl-10 w-full rounded-xl border-gray-200 bg-gray-50/50 border p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all outline-none" placeholder="120/80" />
+                  <input required type="text" name="dia_bloodPressure" value={formData.dia_bloodPressure} onChange={handleChange} className="pl-10 w-full rounded-xl border-gray-200 bg-gray-50/50 border p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all outline-none" placeholder="80" />
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -184,21 +321,47 @@ export default function AddPatient() {
                   <input required type="number" step="0.1" name="wbc" value={formData.wbc} onChange={handleChange} className="pl-10 w-full rounded-xl border-gray-200 bg-gray-50/50 border p-3 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 focus:bg-white transition-all outline-none" placeholder="7.5" />
                 </div>
               </div>
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-sm font-semibold text-gray-600">Lactate (mmol/L)</label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-600">Sys Blood Pressure (mmHg)</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Droplets className="h-4 w-4 text-cyan-500 group-focus-within:text-cyan-600 transition-colors" />
+                    <Wind className="h-4 w-4 text-red-400 group-focus-within:text-red-500 transition-colors" />
                   </div>
-                  <input required type="number" step="0.1" name="lactate" value={formData.lactate} onChange={handleChange} className="pl-10 w-full rounded-xl border-gray-200 bg-gray-50/50 border p-3 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 focus:bg-white transition-all outline-none" placeholder="1.2" />
+                  <input required type="number" step="1" name="Sys_bloodPressure" value={formData.Sys_bloodPressure} onChange={handleChange} className="pl-10 w-full rounded-xl border-gray-200 bg-gray-50/50 border p-3 focus:ring-2 focus:ring-purple-500/20 focus:border-red-500 focus:bg-white transition-all outline-none" placeholder="120" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-600">Oxygen</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Wind className="h-4 w-4 text-blue-400 group-focus-within:text-blue-500 transition-colors" />
+                  </div>
+                  <input required type="number" step="1" name="Oxygen" value={formData.Oxygen} onChange={handleChange} className="pl-10 w-full rounded-xl border-gray-200 bg-gray-50/50 border p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all outline-none" placeholder="98" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-gray-600">Glucose</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <TestTube className="h-4 w-4 text-blue-400 group-focus-within:text-blue-500 transition-colors" />
+                  </div>
+                  <input required type="number" step="1" name="glucose" value={formData.glucose} onChange={handleChange} className="pl-10 w-full rounded-xl border-gray-200 bg-gray-50/50 border p-3 focus:ring-2 focus:ring-emerald-500/20 focus:border-cyan-500  focus:bg-white transition-all outline-none" placeholder="140" />
+                </div>
+              </div>
+              <div className="space-y-1.5 ">
+                <label className="text-sm font-semibold text-gray-600">Respiratory Rate</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Activity className="h-4 w-4 text-emerald-400 group-focus-within:text-emerald-500 transition-colors" />
+                  </div>
+                  <input required type="number" step="1" name="Resp_Rate" value={formData.Resp_Rate} onChange={handleChange} className="pl-10 w-full rounded-xl border-gray-200 bg-gray-50/50 border p-3 focus:ring-2 focus:ring-cyan-500/20 focus:border-emerald-500 focus:bg-white transition-all outline-none" placeholder="18" />
                 </div>
               </div>
             </div>
 
-            {/* Submit Button */}
             <div className="pt-6">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isSubmitting}
                 className="w-full relative group overflow-hidden rounded-xl p-[1px] transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-70 disabled:hover:scale-100 shadow-md hover:shadow-xl hover:shadow-indigo-500/30"
               >

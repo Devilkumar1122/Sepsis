@@ -6,18 +6,9 @@ import {
   ChevronUp, AlertCircle, RefreshCw, ArrowLeft
 } from 'lucide-react';
 
-// Dummy data for history page
-const initialHistoryData = [
-  { id: 'PT-1029', name: 'Eleanor Pena', age: 62, riskScore: 89, status: 'high', trend: 'up', date: '2026-03-24T10:30:00Z' },
-  { id: 'PT-1030', name: 'Wade Warren', age: 45, riskScore: 12, status: 'normal', trend: 'down', date: '2026-03-24T09:15:00Z' },
-  { id: 'PT-1031', name: 'Jacob Jones', age: 78, riskScore: 65, status: 'medium', trend: 'up', date: '2026-03-23T14:45:00Z' },
-  { id: 'PT-1032', name: 'Arlene McCoy', age: 52, riskScore: 45, status: 'medium', trend: 'down', date: '2026-03-23T11:20:00Z' },
-  { id: 'PT-1033', name: 'Devon Lane', age: 34, riskScore: 5, status: 'normal', trend: 'down', date: '2026-03-22T16:05:00Z' },
-  { id: 'PT-1034', name: 'Bessie Cooper', age: 67, riskScore: 92, status: 'high', trend: 'up', date: '2026-03-22T08:30:00Z' },
-  { id: 'PT-1035', name: 'Darrell Steward', age: 41, riskScore: 28, status: 'normal', trend: 'down', date: '2026-03-21T18:10:00Z' },
-  { id: 'PT-1036', name: 'Jane Cooper', age: 55, riskScore: 75, status: 'high', trend: 'up', date: '2026-03-21T13:40:00Z' },
-];
-
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
+import { getAllPatients } from "../store/doctor";
 export default function History() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -35,33 +26,41 @@ export default function History() {
     }
     setSortConfig({ key, direction });
   };
+  const dispatch = useDispatch();
+  const { patients, loading } = useSelector(state => state.doctor);
 
+  useEffect(() => {
+    dispatch(getAllPatients());
+  }, [dispatch]);
   // Filter and Sort Data
   const processedData = useMemo(() => {
-    let filteredData = initialHistoryData;
+
+    let filteredData = [...patients];
 
     // Filter by User Search (Name or ID)
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
       filteredData = filteredData.filter(
         (patient) => 
-          patient.name.toLowerCase().includes(lowercasedTerm) || 
+          (patient.patientName || "").toLowerCase().includes(lowercasedTerm) || 
           patient.id.toLowerCase().includes(lowercasedTerm)
       );
     }
 
     // Filter by Status
     if (statusFilter !== 'all') {
-      filteredData = filteredData.filter((patient) => patient.status === statusFilter);
+      filteredData = filteredData.filter((patient) => patient.riskLevel?.toLowerCase() === statusFilter);
     }
 
     // Sort Data
     if (sortConfig !== null) {
-      filteredData.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+      filteredData = [...filteredData].sort((a, b) => {
+        const left = a[sortConfig.key] ?? "";
+        const right = b[sortConfig.key] ?? "";
+        if (left < right) {
           return sortConfig.direction === 'asc' ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (left > right) {
           return sortConfig.direction === 'asc' ? 1 : -1;
         }
         return 0;
@@ -69,7 +68,7 @@ export default function History() {
     }
 
     return filteredData;
-  }, [searchTerm, statusFilter, sortConfig]);
+  }, [patients,searchTerm, statusFilter, sortConfig]);
 
   // Format Date String
   const formatDate = (isoString) => {
@@ -84,12 +83,12 @@ export default function History() {
   };
 
   const getStatusBadge = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'high':
         return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-500 border border-red-500/20 uppercase tracking-wider">High Risk</span>;
       case 'medium':
         return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 uppercase tracking-wider">Medium</span>;
-      case 'normal':
+      case 'safe':
         return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-500/10 text-green-500 border border-green-500/20 uppercase tracking-wider">Normal</span>;
       default:
         return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-500/10 text-gray-400 border border-gray-500/20">Unknown</span>;
@@ -106,7 +105,7 @@ export default function History() {
     }
     return (
       <div className="flex items-center text-green-400 font-medium text-xs bg-green-400/10 px-2 py-0.5 rounded gap-1">
-        <ArrowDown className="w-3 h-3" /> Stable
+        <ArrowDown className="w-3 h-3" /> Latest Record
       </div>
     );
   };
@@ -118,6 +117,11 @@ export default function History() {
       <ChevronDown className="w-4 h-4 ml-1 text-blue-400" />;
   };
 
+  
+
+  if (loading) {
+    return <div className="text-white text-center mt-10">Loading patients...</div>;
+  }
   return (
     <div className="min-h-screen bg-[#0b1120] text-slate-200 p-6 md:p-8 font-sans">
       
@@ -175,7 +179,7 @@ export default function History() {
               <option value="all">All Risk Levels</option>
               <option value="high">High Risk</option>
               <option value="medium">Medium Risk</option>
-              <option value="normal">Normal / Safe</option>
+              <option value="safe">Normal / Safe</option>
             </select>
             <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-10">
               <ChevronDown className="h-4 w-4 text-slate-500" />
@@ -194,16 +198,16 @@ export default function History() {
                     Patient ID
                   </th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    <div className="flex items-center cursor-pointer group" onClick={() => requestSort('name')}>
-                      Patient Name <SortIcon columnKey="name" />
+                    <div className="flex items-center cursor-pointer group" onClick={() => requestSort('patientName')}>
+                      Patient Name <SortIcon columnKey="patientName" />
                     </div>
                   </th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Age
                   </th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    <div className="flex items-center cursor-pointer group" onClick={() => requestSort('riskScore')}>
-                      Risk Score <SortIcon columnKey="riskScore" />
+                    <div className="flex items-center cursor-pointer group" onClick={() => requestSort('prediction')}>
+                      Risk Score <SortIcon columnKey="prediction" />
                     </div>
                   </th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -213,8 +217,8 @@ export default function History() {
                     Trend
                   </th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    <div className="flex items-center cursor-pointer group" onClick={() => requestSort('date')}>
-                      Prediction Date <SortIcon columnKey="date" />
+                    <div className="flex items-center cursor-pointer group" onClick={() => requestSort('createdAt')}>
+                      Prediction Date <SortIcon columnKey="createdAt" />
                     </div>
                   </th>
                 </tr>
@@ -233,9 +237,9 @@ export default function History() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs mr-3 shadow-inner">
-                            {patient.name.charAt(0)}
+                            {(patient.patientName || "U").charAt(0)}
                           </div>
-                          <span className="text-sm font-semibold text-white group-hover:text-blue-400 transition-colors">{patient.name}</span>
+                          <span className="text-sm font-semibold text-white group-hover:text-blue-400 transition-colors">{patient.patientName}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 font-medium">
@@ -243,21 +247,21 @@ export default function History() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <Activity className={`w-4 h-4 mr-2 ${patient.riskScore > 80 ? 'text-red-500' : patient.riskScore > 40 ? 'text-yellow-500' : 'text-green-500'}`} />
-                          <span className={`text-sm font-bold ${patient.riskScore > 80 ? 'text-red-400' : 'text-slate-200'}`}>
-                            {patient.riskScore}%
+                          <Activity className={`w-4 h-4 mr-2 ${patient.prediction > 80 ? 'text-red-500' : patient.prediction > 40 ? 'text-yellow-500' : 'text-green-500'}`} />
+                          <span className={`text-sm font-bold ${patient.prediction > 80 ? 'text-red-400' : 'text-slate-200'}`}>
+                            {patient.prediction}%
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(patient.status)}
+                        {getStatusBadge(patient.riskLevel)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {getTrendIcon(patient.trend)}
+                        {getTrendIcon("down")}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 flex items-center">
                         <Calendar className="w-4 h-4 mr-2 opacity-50" />
-                        {formatDate(patient.date)}
+                        {formatDate(patient.createdAt)}
                       </td>
                     </tr>
                   ))

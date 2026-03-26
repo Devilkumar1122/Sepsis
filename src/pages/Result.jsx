@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, AlertTriangle, Activity, Thermometer, 
@@ -18,12 +18,6 @@ const mockChartData = [
   { time: '13:00', heartRate: 105, temp: 38.2 },
   { time: '14:00', heartRate: 115, temp: 38.9 },
   { time: '15:00', heartRate: 128, temp: 39.5 },
-];
-
-const factors = [
-  { id: 1, name: 'Heart Rate', value: '128 bpm', status: 'critical', trend: 'up', icon: Activity, description: 'Significantly elevated' },
-  { id: 2, name: 'Temperature', value: '39.5 °C', status: 'high', trend: 'up', icon: Thermometer, description: 'High fever detected' },
-  { id: 3, name: 'Oxygen Level', value: '92%', status: 'low', trend: 'down', icon: Wind, description: 'Below normal range' },
 ];
 
 const SkeletonLoader = () => (
@@ -52,6 +46,34 @@ export default function Result() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
 
+  const location = useLocation();
+  const patient = location.state;
+  const factors = [
+    {
+      name: "Heart Rate",
+      value: `${patient?.vitals?.heartRate} bpm`,
+      icon: Activity,
+      status: patient?.vitals?.heartRate > 100 ? "critical" : "normal",
+      trend: patient?.vitals?.heartRate > 100 ? "up" : "down",
+      description: "Heart rate status"
+    },
+    {
+      name: "Temperature",
+      value: `${patient?.vitals?.temperature} °C`,
+      icon: Thermometer,
+      status: patient?.vitals?.temperature > 38 ? "high" : "normal",
+      trend: patient?.vitals?.temperature > 38 ? "up" : "down",
+      description: "Body temperature"
+    },
+    {
+      name: "Oxygen Level",
+      value: `${patient?.vitals?.oxygen}%`,
+      icon: Wind,
+      status: patient?.vitals?.oxygen < 95 ? "low" : "normal",
+      trend: patient?.vitals?.oxygen < 95 ? "down" : "up",
+      description: "Oxygen saturation"
+    }
+  ];
   // Simulate AI processing time
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -139,7 +161,7 @@ export default function Result() {
                         />
                       </svg>
                       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col justify-center items-center">
-                        <span className="text-6xl font-black text-white drop-shadow-md tracking-tighter">82<span className="text-3xl text-slate-400">%</span></span>
+                        <span className="text-6xl font-black text-white drop-shadow-md tracking-tighter">{patient.prediction}<span className="text-3xl text-slate-400">%</span></span>
                       </div>
                     </div>
                     
@@ -205,7 +227,7 @@ export default function Result() {
                       
                       return (
                         <div 
-                          key={factor.id} 
+                          key={index} 
                           className={`flex items-center p-4 rounded-2xl transition-all duration-300 border ${
                             isCritical ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5 hover:bg-white/10'
                           }`}
