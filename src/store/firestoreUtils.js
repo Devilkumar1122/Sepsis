@@ -32,7 +32,6 @@ export const normalizeUserDocument = (id, data = {}) => ({
   id,
   name: data.name || "",
   email: normalizeEmail(data.email || ""),
-   // ✅ ADD THESE
   age: data.age ?? null,
   gender: data.gender || "Not Set",
   role: normalizeRole(data.role),

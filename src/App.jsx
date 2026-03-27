@@ -18,6 +18,8 @@ import About from "./pages/About";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import UserDashboard from "./pages/UserDashboard";
+import DoctorConsultant from "./pages/DoctorConsultant";
+import ChatPage from "./pages/ChatPage";
 import "./App.css";
 
 const ProtectedRoute = ({ user, children }) => {
@@ -128,6 +130,14 @@ function App() {
           }
         />
         <Route
+          path="/doctor-consultant"
+          element={
+            <UserRoute user={authUser} role={role}>
+              <DoctorConsultant />
+            </UserRoute>
+          }
+        />
+        <Route
           path="/"
           element={
             <DoctorRoute user={authUser} role={role}>
@@ -180,6 +190,14 @@ function App() {
           element={
             <ProtectedRoute user={authUser}>
               <Result />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute user={authUser}>
+              <ChatPage />
             </ProtectedRoute>
           }
         />

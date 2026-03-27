@@ -1,15 +1,80 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Network, Activity, HeartPulse, Droplets, Thermometer, Info, BrainCircuit, ArrowLeft } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 const features = [
-  { id: 1, name: 'Heart Rate', value: 45, icon: HeartPulse, color: 'from-rose-500 to-red-500', fill: '#ef4444', description: 'Elevated to 115 bpm' },
-  { id: 2, name: 'Lactate Level', value: 25, icon: Droplets, color: 'from-purple-500 to-fuchsia-500', fill: '#a855f7', description: 'Spiked to 4.1 mmol/L' },
-  { id: 3, name: 'Temperature', value: 15, icon: Thermometer, color: 'from-orange-400 to-amber-500', fill: '#f97316', description: 'Fever of 38.5 °C' },
-  { id: 4, name: 'WBC Count', value: 10, icon: Activity, color: 'from-blue-400 to-cyan-500', fill: '#06b6d4', description: 'Elevated at 15.2 x10³/µL' },
-  { id: 5, name: 'Blood Pressure', value: 5, icon: Activity, color: 'from-emerald-400 to-teal-500', fill: '#14b8a6', description: 'Dropped to 85/50 mmHg' },
+  {
+    id: 1,
+    name: 'Heart Rate',
+    value: 35,
+    icon: HeartPulse,
+    color: 'from-rose-500 to-red-500',
+    fill: '#ef4444',
+    description: 'Elevated heart rate detected',
+  },
+  {
+    id: 2,
+    name: 'Temperature',
+    value: 20,
+    icon: Thermometer,
+    color: 'from-orange-400 to-amber-500',
+    fill: '#f97316',
+    description: 'Fever detected',
+  },
+  {
+    id: 3,
+    name: 'WBC Count',
+    value: 15,
+    icon: Activity,
+    color: 'from-blue-400 to-cyan-500',
+    fill: '#06b6d4',
+    description: 'Elevated WBC indicates infection',
+  },
+  {
+    id: 4,
+    name: 'Blood Pressure',
+    value: 10,
+    icon: Activity,
+    color: 'from-emerald-400 to-teal-500',
+    fill: '#14b8a6',
+    description: 'Low blood pressure detected',
+  },
+  {
+    id: 5,
+    name: 'Oxygen',
+    value: 10,
+    icon: Droplets,
+    color: 'from-purple-400 to-indigo-500',
+    fill: '#8b5cf6',
+    description: 'Oxygen saturation is low',
+  },
+  {
+    id: 6,
+    name: 'Respiratory Rate',
+    value: 5,
+    icon: Activity,
+    color: 'from-cyan-400 to-blue-500',
+    fill: '#3b82f6',
+    description: 'Abnormal breathing rate',
+  },
+  {
+    id: 7,
+    name: 'Glucose',
+    value: 5,
+    icon: Activity,
+    color: 'from-yellow-400 to-orange-500',
+    fill: '#f59e0b',
+    description: 'Glucose imbalance',
+  },
 ];
+
+const topFeature = features.reduce((highest, feature) => {
+  if (!highest || feature.value > highest.value) {
+    return feature;
+  }
+
+  return highest;
+}, null);
 
 export default function ExplainAi() {
   return (
@@ -47,7 +112,7 @@ export default function ExplainAi() {
             <div>
               <h2 className="text-xl font-bold text-gray-100 mb-2 tracking-wide">Key Finding</h2>
               <p className="text-gray-300 leading-relaxed text-lg font-light">
-                <span className="font-semibold text-rose-400 drop-shadow-sm">High heart rate (115 bpm)</span> is the principal driving factor for this prediction, accounting for <span className="text-gray-100 font-medium tracking-wide">45%</span> of the risk score. This physiological stress marker, compounded by elevated Lactate levels, signals early-stage sepsis progression.
+                <span className="font-semibold text-rose-400 drop-shadow-sm">{topFeature?.name}</span> is the principal driving factor for this prediction, accounting for <span className="text-gray-100 font-medium tracking-wide">{topFeature?.value}%</span> of the risk score. The model suggests that combined abnormalities in vital signs indicate possible sepsis risk.
               </p>
             </div>
           </div>
@@ -62,9 +127,9 @@ export default function ExplainAi() {
             </h3>
             
             <div className="flex flex-col gap-4">
-              {features.map((feature, index) => {
+              {features.map((feature) => {
                 const Icon = feature.icon;
-                const isTopFactor = index === 0;
+                const isTopFactor = feature.id === topFeature?.id;
                 
                 return (
                   <div 
@@ -85,9 +150,16 @@ export default function ExplainAi() {
                           <Icon className="w-5 h-5" />
                         </div>
                         <div>
-                          <h4 className={`text-base font-bold tracking-wide ${isTopFactor ? 'text-white' : 'text-gray-200'}`}>
-                            {feature.name}
-                          </h4>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className={`text-base font-bold tracking-wide ${isTopFactor ? 'text-white' : 'text-gray-200'}`}>
+                              {feature.name}
+                            </h4>
+                            {isTopFactor && (
+                              <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-rose-300">
+                                Top Risk Factor
+                              </span>
+                            )}
+                          </div>
                           <span className="text-sm font-medium text-gray-500">{feature.description}</span>
                         </div>
                       </div>

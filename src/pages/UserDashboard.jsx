@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
@@ -32,21 +32,20 @@ import { selectUser } from "../store/user";
 const MENU_ITEMS = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/userdashboard" },
   { name: "Check Self", icon: ScanLine, path: "/add-patient" },
+  { name: "Doctor Consultant", icon: BriefcaseMedical, path: "/doctor-consultant" },
   { name: "Explain AI", icon: BrainCircuit, path: "/explain-ai" },
   { name: "About", icon: Info, path: "/about" },
 ];
 
 export default function UserDashboard() {
   const user = useSelector((state) => selectUser(state) || state.auth.user);
-
   const navigate = useNavigate();
   const location = useLocation();
 
   const chartData = useMemo(() => {
-  const prediction = Number(user?.prediction ?? 0);
-  const points = [Math.max(prediction - 25, 0), Math.max(prediction - 15, 0), Math.max(prediction - 5, 0), prediction];
+    const prediction = Number(user?.prediction ?? 0);
+    const points = [Math.max(prediction - 25, 0), Math.max(prediction - 15, 0), Math.max(prediction - 5, 0), prediction];
 
-  
     return ["6h", "4h", "2h", "Now"].map((label, index) => ({
       time: label,
       risk: points[index],
@@ -56,36 +55,15 @@ export default function UserDashboard() {
   const riskTone = user?.riskLevel === "High" ? "red" : user?.riskLevel === "Medium" ? "orange" : "emerald";
 
   return (
-      <div className="flex relative gap-8">
-
-        <div className="absolute top-8 right-5 rotate-90 w-16 h-16 bg-white shadow-lg rounded-xl p-4 flex items-end justify-center">
-
-        {/* Circle Avatar */}
-        <div className="absolute top-8 w-16 h-16 bg-emerald-400 hover:bg-emerald-500 cursor-pointer rounded-full flex items-center justify-center shadow-md border-4 border-white">
-          <BriefcaseMedical  className="text-white text-2xl -rotate-90" />
-        </div>
-
-        {/* Text Content */}
-        <div className="text-center mt-6">
-          {/* <h2 className="font-semibold text-gray-800">{name}</h2>
-          <p className="text-sm text-gray-500">{specialty}</p> */}
-        </div>
-
-      </div>
-        <div className="absolute bottom-8 right-5 rotate-90 w-16 h-16 bg-white shadow-lg rounded-xl p-4 flex items-end justify-center">
-
-        {/* Circle Avatar */}
-        <div className="absolute top-8 w-16 h-16 bg-slate-400 hover:bg-red-500 cursor-pointer rounded-full flex items-center justify-center shadow-md border-4 border-white">
-          <Bot  className="text-white text-2xl -rotate-90" />
-        </div>
-
-        {/* Text Content */}
-        <div className="text-center mt-6">
-          {/* <h2 className="font-semibold text-gray-800">{name}</h2>
-          <p className="text-sm text-gray-500">{specialty}</p> */}
-        </div>
-
-      </div>
+    <div className="relative flex gap-8">
+      <button
+        type="button"
+        onClick={() => navigate("/chat")}
+        className="absolute bottom-8 right-5 z-20 flex h-16 w-16 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 text-white shadow-sm shadow-rose-200 transition duration-300 hover:-translate-y-1 hover:scale-105"
+        aria-label="Open sepsis assistant chat"
+      >
+        <Bot className="h-8 w-8" />
+      </button>
 
       <aside className="w-96 bg-gray-50 flex-col hidden lg:flex">
         <div className="p-6 flex items-center gap-3">

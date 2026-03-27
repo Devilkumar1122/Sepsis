@@ -21,7 +21,6 @@ const buildUserPayload = ({ authUser, existingData = {}, updatedData = {} }) => 
   return {
     name: nextName,
     email: nextEmail,
-    // ✅ ADD THESE
     age: updatedData.age ?? normalizedExisting.age ?? null,
     gender: updatedData.gender ?? normalizedExisting.gender ?? "Male",
     role: normalizeRole(updatedData.role || existingData.role || normalizedExisting.role),
