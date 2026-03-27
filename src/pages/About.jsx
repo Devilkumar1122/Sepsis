@@ -23,10 +23,11 @@ export default function About() {
   };
 
   const teamMembers = [
-    { name: 'Rahul Kumar', role: 'ML Engineer', initials: 'RK', color: 'bg-blue-500' },
-    { name: 'Sarah Chen', role: 'Frontend Dev', initials: 'SC', color: 'bg-emerald-500' },
-    { name: 'David Smith', role: 'Backend & API', initials: 'DS', color: 'bg-indigo-500' },
-    { name: 'Elena Rodriguez', role: 'Medical Consultant', initials: 'ER', color: 'bg-rose-500' },
+    { name: 'Risham Soni', role: 'REACT Eng.', initials: 'RS', color: 'bg-blue-500' },
+    { name: 'Khushi Suryawanshi', role: 'AIML Eng.', initials: 'SS', color: 'bg-emerald-500' },
+    { name: 'Vaishnavi Kumari', role: 'AIML Eng.', initials: 'VK', color: 'bg-indigo-500' },
+    // { name: 'Priyanshu Raj', role: 'AIML Eng.', initials: 'PR', color: 'bg-rose-500' },
+    { name: 'Sumit Kumar', role: 'REACT Eng.', initials: 'SK', color: 'bg-yellow-500' },
   ];
 
   const techStack = [

@@ -334,6 +334,8 @@ export default function PredictedPage() {
               updatedData: {
                 name: formData.name,
                 email,
+                age: Number(formData.age) || 0,     // ✅ ADD
+                gender: formData.gender,           // ✅ ADD
                 vitals,
                 prediction: predictionData.prediction,
                 riskLevel: predictionData.riskLevel,
@@ -444,7 +446,7 @@ export default function PredictedPage() {
             >
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate(-2)}
                 className="group inline-flex items-center text-slate-400 transition-colors hover:text-white"
               >
                 <span className="mr-3 rounded-full bg-white/5 p-2 transition-colors group-hover:bg-white/10">

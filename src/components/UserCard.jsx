@@ -42,7 +42,7 @@ export default function ProfileCard({ user }) {
 
         <div className="flex justify-between items-center bg-slate-50 border border-slate-100 px-5 py-3 rounded-2xl transition-colors hover:bg-white hover:border-slate-200 group/item">
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Age</span>
-          <span className="font-bold text-slate-800">{user?.age || "45"}</span>
+          <span className="font-bold text-slate-800">{user?.age || "Not Set"}</span>
         </div>
 
         <div className="flex justify-between items-center bg-slate-50 border border-slate-100 px-5 py-3 rounded-2xl transition-colors hover:bg-white hover:border-slate-200 group/item">

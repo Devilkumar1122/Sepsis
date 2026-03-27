@@ -161,7 +161,7 @@ export default function Result() {
                         />
                       </svg>
                       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col justify-center items-center">
-                        <span className="text-6xl font-black text-white drop-shadow-md tracking-tighter">{patient.prediction}<span className="text-3xl text-slate-400">%</span></span>
+                        <span className="text-6xl font-black text-white drop-shadow-md tracking-tighter">{patient.prediction}<span className="text-3xl text-slate-400 ml-2">%</span></span>
                       </div>
                     </div>
                     
