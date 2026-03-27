@@ -186,7 +186,7 @@ export default function UserDashboard() {
 
       <div className="bg-gray-50 pr-16 flex justify-center">
         <div className="w-96 ml-16 mt-40 ">
-          <ProfileCard />
+          <ProfileCard user={user}/>
         </div>
       </div>
     </div>

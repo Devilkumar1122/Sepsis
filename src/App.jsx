@@ -11,6 +11,7 @@ import Alerts from "./pages/Alerts";
 import AddPatient from "./pages/AddPatient";
 import ExplainAi from "./pages/ExplainAi";
 import PatientDetails from "./pages/PatientDetails";
+import PredictedPage from "./pages/PredictedPage";
 import Result from "./pages/Result";
 import History from "./pages/History";
 import About from "./pages/About";
@@ -164,6 +165,14 @@ function App() {
             <DoctorRoute user={authUser} role={role}>
               <PatientDetails />
             </DoctorRoute>
+          }
+        />
+        <Route
+          path="/predict"
+          element={
+            <ProtectedRoute user={authUser}>
+              <PredictedPage />
+            </ProtectedRoute>
           }
         />
         <Route

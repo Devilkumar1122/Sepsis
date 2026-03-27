@@ -1,14 +1,16 @@
 import { configureStore } from "@reduxjs/toolkit";
-import doctorSlice from './doctor'
-import userSlice from './user'
-import authSlice from './auth'
+import aiReducer from "./aiSlice";
+import authReducer from "./auth";
+import doctorReducer from "./doctor";
+import userReducer from "./user";
 
 const sepsis = configureStore({
-    reducer:{
-        doctor: doctorSlice,
-        user: userSlice,
-        auth: authSlice
-    }
-})
+  reducer: {
+    ai: aiReducer,
+    auth: authReducer,
+    doctor: doctorReducer,
+    user: userReducer,
+  },
+});
 
 export default sepsis;
